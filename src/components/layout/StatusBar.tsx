@@ -1,8 +1,29 @@
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, GitBranch } from "lucide-react";
 import { useUI, useEditor, useVault } from "@/store";
 
 function wordCount(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+interface ChipProps {
+  children: React.ReactNode;
+  title?: string;
+  muted?: boolean;
+  onClick?: () => void;
+}
+
+function Chip({ children, title, muted, onClick }: ChipProps) {
+  const Tag = onClick ? "button" : "span";
+  return (
+    <Tag
+      title={title}
+      onClick={onClick}
+      className="flex items-center gap-1 px-2 h-full transition-colors hover:bg-[var(--ns-muted)]"
+      style={{ color: muted ? "var(--ns-muted-fg)" : "var(--ns-sidebar-fg)" }}
+    >
+      {children}
+    </Tag>
+  );
 }
 
 export default function StatusBar() {
@@ -12,47 +33,67 @@ export default function StatusBar() {
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
   const words = activeTab ? wordCount(activeTab.content) : 0;
-  const cursor = activeTab
-    ? `Ln ${activeTab.cursorPos.line + 1}, Col ${activeTab.cursorPos.ch + 1}`
-    : "";
+  const ln = activeTab ? activeTab.cursorPos.line + 1 : null;
+  const col = activeTab ? activeTab.cursorPos.ch + 1 : null;
 
   return (
     <div
-      className="flex items-center justify-between px-3 shrink-0 text-xs no-select"
+      className="flex items-stretch shrink-0 text-xs no-select overflow-hidden"
       style={{
         height: "var(--ns-statusbar-height)",
-        background: "var(--ns-accent)",
-        color: "var(--ns-accent-fg)",
+        background: "var(--ns-sidebar-bg)",
+        borderTop: "1px solid var(--ns-border)",
+        color: "var(--ns-sidebar-fg)",
       }}
     >
-      {/* Left */}
-      <div className="flex items-center gap-3">
-        {vaultName && (
-          <span title={vaultPath ?? ""} className="opacity-90">
-            {vaultName}
-          </span>
-        )}
+      {/* Accent vault chip — left anchor */}
+      {vaultName && (
+        <span
+          className="flex items-center gap-1.5 px-3 shrink-0 font-medium"
+          style={{
+            background: "var(--ns-accent)",
+            color: "var(--ns-accent-fg)",
+          }}
+          title={vaultPath ?? ""}
+        >
+          <GitBranch size={11} />
+          {vaultName}
+        </span>
+      )}
+
+      {/* Left info */}
+      <div className="flex items-stretch">
         {flatFiles.length > 0 && (
-          <span className="opacity-75">{flatFiles.length} notes</span>
+          <Chip muted>{flatFiles.length} notes</Chip>
         )}
       </div>
 
-      {/* Right */}
-      <div className="flex items-center gap-3">
-        {cursor && <span>{cursor}</span>}
-        {activeTab && <span>{words} words</span>}
-        {activeTab && (
-          <span className="opacity-75">{activeTab.mode}</span>
-        )}
+      {/* Spacer */}
+      <div className="flex-1" />
 
-        {/* Theme toggle */}
-        <button
+      {/* Right info */}
+      <div className="flex items-stretch">
+        {activeTab && ln !== null && (
+          <Chip muted title="Cursor position">
+            Ln {ln}, Col {col}
+          </Chip>
+        )}
+        {activeTab && (
+          <Chip muted title="Word count">
+            {words} words
+          </Chip>
+        )}
+        {activeTab && (
+          <Chip muted title="Editor mode">
+            {activeTab.mode === "live-preview" ? "live" : activeTab.mode}
+          </Chip>
+        )}
+        <Chip
           onClick={toggleTheme}
-          className="hover:opacity-80 transition-opacity"
           title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
         >
-          {theme === "dark" ? <Sun size={13} /> : <Moon size={13} />}
-        </button>
+          {theme === "dark" ? <Sun size={12} /> : <Moon size={12} />}
+        </Chip>
       </div>
     </div>
   );

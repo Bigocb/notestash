@@ -1,36 +1,47 @@
-import { Plus, FolderPlus } from "lucide-react";
+import { useRef, useState } from "react";
+import { Plus, FolderPlus, FilePlus } from "lucide-react";
 import { useVault, useEditor } from "@/store";
 import { FileTreeNode } from "@/types/note";
 import FileTreeNodeItem from "./FileTreeNode";
 import * as fsLib from "@/lib/fs";
 
+type CreatingKind = "note" | "folder" | null;
+
 export default function FileTree() {
   const { vaultPath, vaultName, fileTree, refreshFileTree } = useVault();
   const { openTab } = useEditor();
+  const [creating, setCreating] = useState<CreatingKind>(null);
+  const [inputValue, setInputValue] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  async function handleNewNote() {
-    if (!vaultPath) return;
-    const name = prompt("Note name:");
-    if (!name?.trim()) return;
+  function startCreating(kind: CreatingKind) {
+    setInputValue("");
+    setCreating(kind);
+    // focus is handled by autoFocus on the input
+  }
+
+  async function commitCreate() {
+    const name = inputValue.trim();
+    setCreating(null);
+    setInputValue("");
+    if (!name || !vaultPath) return;
     try {
-      const newPath = await fsLib.createNote(vaultPath, name.trim());
-      await refreshFileTree();
-      await openTab(newPath, name.trim());
+      if (creating === "note") {
+        const newPath = await fsLib.createNote(vaultPath, name);
+        await refreshFileTree();
+        await openTab(newPath, name);
+      } else if (creating === "folder") {
+        await fsLib.createFolder(vaultPath, name);
+        await refreshFileTree();
+      }
     } catch (err) {
-      console.error("Failed to create note:", err);
+      console.error("Failed to create:", err);
     }
   }
 
-  async function handleNewFolder() {
-    if (!vaultPath) return;
-    const name = prompt("Folder name:");
-    if (!name?.trim()) return;
-    try {
-      await fsLib.createFolder(vaultPath, name.trim());
-      await refreshFileTree();
-    } catch (err) {
-      console.error("Failed to create folder:", err);
-    }
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter") commitCreate();
+    if (e.key === "Escape") { setCreating(null); setInputValue(""); }
   }
 
   return (
@@ -47,22 +58,22 @@ export default function FileTree() {
         >
           {vaultName ?? "Explorer"}
         </span>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
           <button
-            title="New Note"
-            onClick={handleNewNote}
-            className="p-1 rounded hover:bg-[var(--ns-muted)] transition-colors"
+            title="New Note (n)"
+            onClick={() => startCreating("note")}
+            className="p-1.5 rounded-md hover:bg-[var(--ns-muted)] transition-colors"
             style={{ color: "var(--ns-muted-fg)" }}
           >
-            <Plus size={14} />
+            <FilePlus size={13} />
           </button>
           <button
             title="New Folder"
-            onClick={handleNewFolder}
-            className="p-1 rounded hover:bg-[var(--ns-muted)] transition-colors"
+            onClick={() => startCreating("folder")}
+            className="p-1.5 rounded-md hover:bg-[var(--ns-muted)] transition-colors"
             style={{ color: "var(--ns-muted-fg)" }}
           >
-            <FolderPlus size={14} />
+            <FolderPlus size={13} />
           </button>
         </div>
       </div>
@@ -72,6 +83,31 @@ export default function FileTree() {
         {fileTree?.children?.map((node: FileTreeNode) => (
           <FileTreeNodeItem key={node.path} node={node} depth={0} />
         ))}
+
+        {/* Inline creation input at end of list */}
+        {creating && (
+          <div
+            className="flex items-center gap-1.5 mx-2 mt-1 px-2 py-1 rounded-md"
+            style={{ border: "1px solid var(--ns-accent)" }}
+          >
+            {creating === "note" ? (
+              <Plus size={12} style={{ color: "var(--ns-accent)" }} className="shrink-0" />
+            ) : (
+              <FolderPlus size={12} style={{ color: "var(--ns-accent)" }} className="shrink-0" />
+            )}
+            <input
+              ref={inputRef}
+              autoFocus
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onBlur={commitCreate}
+              placeholder={creating === "note" ? "note-name.md" : "folder-name"}
+              className="flex-1 bg-transparent text-xs outline-none"
+              style={{ color: "var(--ns-fg)" }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

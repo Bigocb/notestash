@@ -8,6 +8,9 @@ interface Props {
   depth: number;
 }
 
+const BASE_PAD = 10;
+const INDENT = 16;
+
 export default function FileTreeNodeItem({ node, depth }: Props) {
   const { expandedDirs, toggleDirExpansion } = useVault();
   const { openTab, tabs } = useEditor();
@@ -23,58 +26,67 @@ export default function FileTreeNodeItem({ node, depth }: Props) {
     }
   }
 
-  const paddingLeft = 12 + depth * 16;
-
   return (
     <div>
       <div
         className={cn(
-          "flex items-center gap-1.5 py-0.5 pr-2 cursor-pointer text-sm transition-colors",
+          "relative flex items-center gap-1.5 py-[3px] pr-3 cursor-pointer transition-colors",
           "hover:bg-[var(--ns-muted)]",
-          isOpen && !node.isDirectory && "text-[var(--ns-accent)]"
+          isOpen && !node.isDirectory && "bg-[var(--ns-muted)]"
         )}
-        style={{
-          paddingLeft,
-          color: node.isDirectory
-            ? "var(--ns-sidebar-fg)"
-            : isOpen
-            ? "var(--ns-accent)"
-            : "var(--ns-sidebar-fg)",
-        }}
+        style={{ paddingLeft: BASE_PAD + depth * INDENT }}
         onClick={handleClick}
       >
-        {/* Expand arrow for directories */}
-        {node.isDirectory ? (
-          isExpanded ? (
-            <ChevronDown size={12} className="shrink-0 opacity-60" />
-          ) : (
-            <ChevronRight size={12} className="shrink-0 opacity-60" />
-          )
-        ) : (
-          <span className="w-3 shrink-0" />
-        )}
+        {/* Chevron */}
+        <span className="shrink-0 w-3 flex items-center justify-center">
+          {node.isDirectory ? (
+            isExpanded ? (
+              <ChevronDown size={11} className="opacity-60" />
+            ) : (
+              <ChevronRight size={11} className="opacity-40" />
+            )
+          ) : null}
+        </span>
 
         {/* Icon */}
         {node.isDirectory ? (
           isExpanded ? (
             <FolderOpen size={14} className="shrink-0" style={{ color: "var(--ns-accent)" }} />
           ) : (
-            <Folder size={14} className="shrink-0" style={{ color: "var(--ns-accent)" }} />
+            <Folder size={14} className="shrink-0" style={{ color: "var(--ns-accent)", opacity: 0.8 }} />
           )
         ) : (
-          <FileText size={14} className="shrink-0 opacity-70" />
+          <FileText size={14} className="shrink-0" style={{ color: "var(--ns-muted-fg)", opacity: 0.7 }} />
         )}
 
         {/* Name */}
-        <span className="truncate">
-          {node.isDirectory ? node.name : node.name}
+        <span
+          className="truncate text-xs"
+          style={{
+            color: isOpen && !node.isDirectory ? "var(--ns-accent)" : "var(--ns-sidebar-fg)",
+          }}
+        >
+          {node.name}
         </span>
       </div>
 
-      {/* Children */}
-      {node.isDirectory && isExpanded && node.children?.map((child) => (
-        <FileTreeNodeItem key={child.path} node={child} depth={depth + 1} />
-      ))}
+      {/* Children with indent guide */}
+      {node.isDirectory && isExpanded && node.children && (
+        <div
+          className="relative"
+          style={{
+            borderLeft: "1px solid var(--ns-border)",
+            marginLeft: BASE_PAD + depth * INDENT + 12,
+            opacity: 0.8,
+          }}
+        >
+          <div style={{ marginLeft: -(BASE_PAD + depth * INDENT + 12) }}>
+            {node.children.map((child) => (
+              <FileTreeNodeItem key={child.path} node={child} depth={depth + 1} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
