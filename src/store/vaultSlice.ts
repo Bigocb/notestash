@@ -1,7 +1,7 @@
 import { FileTreeNode, NoteFileMeta, VaultFileEvent } from "@/types/note";
 import { DocumentType, documentTypeFromExtension } from "@/types/document";
 import { parseNote } from "@/lib/parser";
-import { addToSearchIndex, clearSearchIndex } from "@/lib/search";
+import { addToSearchIndex, updateSearchIndex, removeFromSearchIndex, clearSearchIndex } from "@/lib/search";
 import * as fs from "@/lib/fs";
 import type { ImmerSet, ImmerGet } from "./types";
 
@@ -120,8 +120,10 @@ export const createVaultSlice = (set: ImmerSet, get: ImmerGet): VaultSlice => ({
     }
   },
 
-  handleFileEvent: (_event: VaultFileEvent) => {
+  handleFileEvent: (event: VaultFileEvent) => {
     get().refreshFileTree();
+    // Keep search index in sync with file system changes
+    syncSearchIndexForEvent(event);
   },
 
   toggleDirExpansion: (path: string) => {
@@ -141,6 +143,31 @@ export const createVaultSlice = (set: ImmerSet, get: ImmerGet): VaultSlice => ({
     });
   },
 });
+
+/** Re-index or remove files in response to a watcher event. Fire-and-forget. */
+async function syncSearchIndexForEvent(event: VaultFileEvent) {
+  const isMd = (p: string) => p.endsWith(".md");
+  if (event.kind === "deleted") {
+    for (const p of event.paths) removeFromSearchIndex(p);
+    return;
+  }
+  // created or modified — re-read and (re)index
+  for (const filePath of event.paths) {
+    if (!isMd(filePath)) continue;
+    try {
+      const raw = await fs.readNote(filePath);
+      const name = filePath.split("/").pop()?.replace(/\.md$/, "") ?? filePath;
+      const parsed = parseNote(raw, name);
+      if (event.kind === "created") {
+        addToSearchIndex(filePath, parsed.title, parsed.body, parsed.tags);
+      } else {
+        updateSearchIndex(filePath, parsed.title, parsed.body, parsed.tags);
+      }
+    } catch {
+      // file may not be readable yet (e.g. created event fires before write completes)
+    }
+  }
+}
 
 async function enrichNoteMetadata(files: NoteFileMeta[], set: ImmerSet) {
   const mdFiles = files.filter((f) => f.type === DocumentType.Markdown);

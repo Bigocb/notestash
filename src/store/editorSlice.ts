@@ -19,6 +19,7 @@ export interface EditorSlice {
   updateTabCursor: (tabId: string, line: number, ch: number) => void;
   toggleSplit: () => void;
   setSplitSecondaryTab: (tabId: string) => void;
+  setSplitRatio: (ratio: number) => void;
 }
 
 export const createEditorSlice = (set: ImmerSet, get: ImmerGet): EditorSlice => ({
@@ -153,5 +154,9 @@ export const createEditorSlice = (set: ImmerSet, get: ImmerGet): EditorSlice => 
 
   setSplitSecondaryTab: (tabId: string) => {
     set((state) => { state.split.secondaryTabId = tabId; });
+  },
+
+  setSplitRatio: (ratio: number) => {
+    set((state) => { state.split.splitRatio = Math.max(0.2, Math.min(0.8, ratio)); });
   },
 });

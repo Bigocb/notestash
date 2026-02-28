@@ -53,6 +53,7 @@ export const useEditor = () =>
     updateTabCursor: s.updateTabCursor,
     toggleSplit: s.toggleSplit,
     setSplitSecondaryTab: s.setSplitSecondaryTab,
+    setSplitRatio: s.setSplitRatio,
   }));
 
 export const useUI = () =>
