@@ -1,25 +1,35 @@
-import { useCallback } from "react";
-import CodeMirror from "@uiw/react-codemirror";
-import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
-import { languages } from "@codemirror/language-data";
-import { EditorView } from "@codemirror/view";
-import { useEditor, useSettings } from "@/store";
+import { useCallback, useMemo } from "react";
+import CodeMirror, { Statistics } from "@uiw/react-codemirror";
+import { useEditor, useSettings, useVault } from "@/store";
 import { EditorTab } from "@/types/editor";
 import { debounce } from "@/lib/utils";
+import { resolveWikiLink } from "@/lib/wikilinks";
+import {
+  baseExtensions,
+  livePreviewExtensions,
+  sourceExtensions,
+  buildEditorTheme,
+} from "@/codemirror";
 
 interface Props {
   tab: EditorTab;
 }
 
-const baseExtensions = [
-  markdown({ base: markdownLanguage, codeLanguages: languages }),
-  EditorView.lineWrapping,
-];
-
 export default function MarkdownEditor({ tab }: Props) {
-  const { updateTabContent, saveTab } = useEditor();
+  const { updateTabContent, saveTab, updateTabCursor, openTab } = useEditor();
+  const { flatFiles, vaultPath } = useVault();
   const { fontSize, lineHeight, spellcheck, autosaveDelay } = useSettings();
 
+  // Wiki-link navigation — resolve [[target]] → open file in a tab
+  const handleWikiLinkNavigate = useCallback(
+    (target: string) => {
+      const resolved = resolveWikiLink(target, flatFiles, vaultPath);
+      if (resolved) {
+        openTab(resolved, target);
+      }
+    },
+    [flatFiles, vaultPath, openTab]
+  );
 
   // Debounced auto-save
   const debouncedSave = useCallback(
@@ -37,42 +47,39 @@ export default function MarkdownEditor({ tab }: Props) {
     [tab.id, updateTabContent, debouncedSave]
   );
 
-  const editorTheme = EditorView.theme({
-    "&": {
-      background: "var(--ns-editor-bg)",
-      color: "var(--ns-editor-fg)",
-      fontSize: `${fontSize}px`,
-      lineHeight: String(lineHeight),
-      fontFamily: "var(--ns-font-mono)",
-      height: "100%",
+  // Report cursor position to StatusBar
+  const handleStatistics = useCallback(
+    (stats: Statistics) => {
+      const col = stats.selection.main.head - stats.line.from;
+      updateTabCursor(tab.id, stats.line.number - 1, col);
     },
-    ".cm-content": {
-      padding: "16px 24px",
-      caretColor: "var(--ns-accent)",
-    },
-    ".cm-focused .cm-cursor": {
-      borderLeftColor: "var(--ns-accent)",
-    },
-    ".cm-selectionBackground, ::selection": {
-      background: "var(--ns-selection) !important",
-    },
-    ".cm-activeLine": {
-      background: "var(--ns-line-highlight)",
-    },
-    ".cm-gutters": {
-      display: "none",
-    },
-    ".cm-scroller": {
-      overflow: "auto",
-      height: "100%",
-    },
-  });
+    [tab.id, updateTabCursor]
+  );
+
+  // Build extensions based on current mode
+  const modeExtensions = useMemo(() => {
+    if (tab.mode === "live-preview") {
+      return livePreviewExtensions(handleWikiLinkNavigate);
+    }
+    return sourceExtensions(handleWikiLinkNavigate);
+  }, [tab.mode, handleWikiLinkNavigate]);
+
+  const editorTheme = useMemo(
+    () => buildEditorTheme(fontSize, lineHeight),
+    [fontSize, lineHeight]
+  );
+
+  const extensions = useMemo(
+    () => [...baseExtensions, ...modeExtensions, editorTheme],
+    [modeExtensions, editorTheme]
+  );
 
   return (
     <CodeMirror
       value={tab.content}
       onChange={handleChange}
-      extensions={[...baseExtensions, editorTheme]}
+      onStatistics={handleStatistics}
+      extensions={extensions}
       basicSetup={{
         lineNumbers: false,
         foldGutter: false,
