@@ -1,128 +1,313 @@
-import { useEffect } from "react";
+import { useCallback } from "react";
+import {
+  CommandDialog,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+  CommandSeparator,
+} from "cmdk";
+import {
+  FileText,
+  FolderOpen,
+  PanelLeft,
+  Sun,
+  Moon,
+  SplitSquareHorizontal,
+  Search,
+  Tag,
+  FilePlus,
+  X,
+} from "lucide-react";
 import { useUI, useVault, useEditor } from "@/store";
-import { pickVaultFolder } from "@/lib/fs";
-import { FileText, FolderOpen, Moon, Sun, PanelLeft } from "lucide-react";
+import { pickVaultFolder, createNote } from "@/lib/fs";
 
 export default function CommandPalette() {
-  const { isCommandPaletteOpen, setCommandPaletteOpen, toggleTheme, theme, toggleSidebar } = useUI();
-  const { flatFiles, openVault } = useVault();
-  const { openTab } = useEditor();
+  const {
+    isCommandPaletteOpen,
+    setCommandPaletteOpen,
+    toggleTheme,
+    toggleSidebar,
+    setActivePanel,
+    theme,
+  } = useUI();
+  const { flatFiles, openVault, vaultPath } = useVault();
+  const { openTab, activeTabId, closeTab, toggleSplit, setTabMode, tabs } = useEditor();
 
-  // Close on Escape
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setCommandPaletteOpen(false);
-    }
-    if (isCommandPaletteOpen) {
-      window.addEventListener("keydown", onKey);
-      return () => window.removeEventListener("keydown", onKey);
-    }
-  }, [isCommandPaletteOpen, setCommandPaletteOpen]);
-
-  if (!isCommandPaletteOpen) return null;
+  const close = useCallback(() => setCommandPaletteOpen(false), [setCommandPaletteOpen]);
 
   async function handleOpenVault() {
-    setCommandPaletteOpen(false);
+    close();
     const path = await pickVaultFolder();
     if (path) await openVault(path);
   }
 
+  async function handleNewNote() {
+    close();
+    if (!vaultPath) return;
+    const name = `Untitled-${Date.now()}.md`;
+    try {
+      const newPath = await createNote(vaultPath, name);
+      await openTab(newPath, name);
+    } catch (err) {
+      console.error("New note failed:", err);
+    }
+  }
+
+  function handleGoSearch() {
+    close();
+    setActivePanel("search");
+  }
+
+  function handleGoTags() {
+    close();
+    setActivePanel("tags");
+  }
+
+  function handleToggleSidebar() {
+    close();
+    toggleSidebar();
+  }
+
+  function handleToggleTheme() {
+    close();
+    toggleTheme();
+  }
+
+  function handleToggleSplit() {
+    close();
+    toggleSplit();
+  }
+
+  function handleCloseTab() {
+    close();
+    if (activeTabId) closeTab(activeTabId);
+  }
+
+  function handleCycleMode() {
+    close();
+    if (!activeTabId) return;
+    const tab = tabs.find((t) => t.id === activeTabId);
+    if (!tab) return;
+    const modes = ["source", "live-preview", "preview"] as const;
+    const idx = modes.indexOf(tab.mode);
+    setTabMode(activeTabId, modes[(idx + 1) % modes.length]);
+  }
+
+  const activeTab = tabs.find((t) => t.id === activeTabId);
+
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 z-40"
-        style={{ background: "rgba(0,0,0,0.5)" }}
-        onClick={() => setCommandPaletteOpen(false)}
-      />
+    <CommandDialog
+      open={isCommandPaletteOpen}
+      onOpenChange={setCommandPaletteOpen}
+      label="Command palette"
+    >
+      {/* Overlay handled by cmdk/Radix — style via class */}
+      <style>{`
+        /* Dialog overlay */
+        [cmdk-overlay] {
+          position: fixed;
+          inset: 0;
+          z-index: 40;
+          background: rgba(0, 0, 0, 0.55);
+          backdrop-filter: blur(2px);
+        }
+        /* Dialog content */
+        [cmdk-dialog] > div {
+          position: fixed;
+          top: 20%;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 50;
+          width: 100%;
+          max-width: 580px;
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+          background: var(--ns-bg);
+          border: 1px solid var(--ns-border);
+        }
+        /* Search input */
+        [cmdk-input] {
+          width: 100%;
+          padding: 14px 16px;
+          font-size: 14px;
+          background: transparent;
+          color: var(--ns-fg);
+          border: none;
+          border-bottom: 1px solid var(--ns-border);
+          outline: none;
+        }
+        [cmdk-input]::placeholder {
+          color: var(--ns-muted-fg);
+        }
+        /* List container */
+        [cmdk-list] {
+          max-height: 360px;
+          overflow-y: auto;
+          padding: 6px 0;
+        }
+        /* Group heading */
+        [cmdk-group-heading] {
+          padding: 6px 14px 4px;
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: var(--ns-muted-fg);
+          user-select: none;
+        }
+        /* Items */
+        [cmdk-item] {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 14px;
+          font-size: 13px;
+          color: var(--ns-fg);
+          cursor: pointer;
+          border-radius: 0;
+          user-select: none;
+          transition: background 80ms;
+        }
+        [cmdk-item][data-selected="true"] {
+          background: var(--ns-muted);
+          color: var(--ns-fg);
+        }
+        [cmdk-item]:active {
+          background: var(--ns-muted);
+        }
+        /* Empty state */
+        [cmdk-empty] {
+          padding: 24px 16px;
+          font-size: 13px;
+          text-align: center;
+          color: var(--ns-muted-fg);
+        }
+        /* Separator */
+        [cmdk-separator] {
+          height: 1px;
+          background: var(--ns-border);
+          margin: 4px 0;
+        }
+      `}</style>
 
-      {/* Modal */}
-      <div
-        className="fixed top-24 left-1/2 -translate-x-1/2 z-50 w-full max-w-xl rounded-lg shadow-2xl overflow-hidden"
-        style={{
-          background: "var(--ns-bg)",
-          border: "1px solid var(--ns-border)",
-        }}
-      >
-        <input
-          autoFocus
-          type="text"
-          placeholder="Search notes and commands..."
-          className="w-full px-4 py-3 text-sm outline-none"
-          style={{
-            background: "transparent",
-            color: "var(--ns-fg)",
-            borderBottom: "1px solid var(--ns-border)",
-          }}
-        />
+      <CommandInput placeholder="Search notes and commands…" />
 
-        <div className="max-h-80 overflow-y-auto py-2">
-          {/* Notes section */}
-          {flatFiles.length > 0 && (
-            <div>
-              <div
-                className="px-4 py-1 text-xs font-semibold uppercase tracking-wider"
-                style={{ color: "var(--ns-muted-fg)" }}
+      <CommandList>
+        <CommandEmpty>No results found.</CommandEmpty>
+
+        {/* Notes ── fuzzy filtered by title, path */}
+        {flatFiles.length > 0 && (
+          <CommandGroup heading="Notes">
+            {flatFiles.map((file) => (
+              <CommandItem
+                key={file.filePath}
+                value={`${file.title} ${file.filePath}`}
+                onSelect={() => {
+                  openTab(file.filePath, file.title);
+                  close();
+                }}
               >
-                Notes
-              </div>
-              {flatFiles.slice(0, 8).map((file) => (
-                <button
-                  key={file.filePath}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-left hover:bg-[var(--ns-muted)] transition-colors"
-                  style={{ color: "var(--ns-fg)" }}
-                  onClick={() => {
-                    openTab(file.filePath, file.title);
-                    setCommandPaletteOpen(false);
-                  }}
-                >
-                  <FileText size={14} style={{ color: "var(--ns-muted-fg)" }} />
-                  {file.title}
-                </button>
-              ))}
-            </div>
+                <FileText size={14} style={{ color: "var(--ns-muted-fg)", flexShrink: 0 }} />
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {file.title}
+                  </span>
+                </span>
+                {file.tags.length > 0 && (
+                  <span style={{ fontSize: 11, color: "var(--ns-muted-fg)", flexShrink: 0 }}>
+                    #{file.tags[0]}
+                    {file.tags.length > 1 ? ` +${file.tags.length - 1}` : ""}
+                  </span>
+                )}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+
+        <CommandSeparator />
+
+        {/* Commands ── static, always filterable */}
+        <CommandGroup heading="Commands">
+          <CommandItem value="new note create" onSelect={handleNewNote}>
+            <FilePlus size={14} style={{ color: "var(--ns-muted-fg)", flexShrink: 0 }} />
+            New Note
+            <Kbd>Ctrl+N</Kbd>
+          </CommandItem>
+
+          <CommandItem value="open vault folder" onSelect={handleOpenVault}>
+            <FolderOpen size={14} style={{ color: "var(--ns-muted-fg)", flexShrink: 0 }} />
+            Open Vault Folder
+            <Kbd>Ctrl+O</Kbd>
+          </CommandItem>
+
+          <CommandItem value="toggle sidebar panel" onSelect={handleToggleSidebar}>
+            <PanelLeft size={14} style={{ color: "var(--ns-muted-fg)", flexShrink: 0 }} />
+            Toggle Sidebar
+            <Kbd>Ctrl+B</Kbd>
+          </CommandItem>
+
+          <CommandItem value="search notes full text" onSelect={handleGoSearch}>
+            <Search size={14} style={{ color: "var(--ns-muted-fg)", flexShrink: 0 }} />
+            Go to Search
+            <Kbd>Ctrl+Shift+F</Kbd>
+          </CommandItem>
+
+          <CommandItem value="tags filter browse" onSelect={handleGoTags}>
+            <Tag size={14} style={{ color: "var(--ns-muted-fg)", flexShrink: 0 }} />
+            Go to Tags
+          </CommandItem>
+
+          <CommandItem value="split editor pane" onSelect={handleToggleSplit}>
+            <SplitSquareHorizontal size={14} style={{ color: "var(--ns-muted-fg)", flexShrink: 0 }} />
+            Toggle Split Editor
+            <Kbd>Ctrl+\</Kbd>
+          </CommandItem>
+
+          {activeTab && (
+            <CommandItem value="cycle editor mode source live preview" onSelect={handleCycleMode}>
+              <span style={{ width: 14, flexShrink: 0 }} />
+              Cycle Editor Mode
+              <Kbd>Ctrl+E</Kbd>
+            </CommandItem>
           )}
 
-          {/* Commands section */}
-          <div>
-            <div
-              className="px-4 py-1 text-xs font-semibold uppercase tracking-wider"
-              style={{ color: "var(--ns-muted-fg)" }}
-            >
-              Commands
-            </div>
+          {activeTabId && (
+            <CommandItem value="close tab" onSelect={handleCloseTab}>
+              <X size={14} style={{ color: "var(--ns-muted-fg)", flexShrink: 0 }} />
+              Close Tab
+              <Kbd>Ctrl+W</Kbd>
+            </CommandItem>
+          )}
 
-            <button
-              className="w-full flex items-center gap-3 px-4 py-2 text-sm text-left hover:bg-[var(--ns-muted)] transition-colors"
-              style={{ color: "var(--ns-fg)" }}
-              onClick={handleOpenVault}
-            >
-              <FolderOpen size={14} style={{ color: "var(--ns-muted-fg)" }} />
-              Open Vault
-            </button>
+          <CommandItem
+            value={`switch theme ${theme === "dark" ? "light" : "dark"}`}
+            onSelect={handleToggleTheme}
+          >
+            {theme === "dark"
+              ? <Sun size={14} style={{ color: "var(--ns-muted-fg)", flexShrink: 0 }} />
+              : <Moon size={14} style={{ color: "var(--ns-muted-fg)", flexShrink: 0 }} />}
+            Toggle Theme
+          </CommandItem>
+        </CommandGroup>
+      </CommandList>
+    </CommandDialog>
+  );
+}
 
-            <button
-              className="w-full flex items-center gap-3 px-4 py-2 text-sm text-left hover:bg-[var(--ns-muted)] transition-colors"
-              style={{ color: "var(--ns-fg)" }}
-              onClick={() => { toggleSidebar(); setCommandPaletteOpen(false); }}
-            >
-              <PanelLeft size={14} style={{ color: "var(--ns-muted-fg)" }} />
-              Toggle Sidebar
-            </button>
-
-            <button
-              className="w-full flex items-center gap-3 px-4 py-2 text-sm text-left hover:bg-[var(--ns-muted)] transition-colors"
-              style={{ color: "var(--ns-fg)" }}
-              onClick={() => { toggleTheme(); setCommandPaletteOpen(false); }}
-            >
-              {theme === "dark"
-                ? <Sun size={14} style={{ color: "var(--ns-muted-fg)" }} />
-                : <Moon size={14} style={{ color: "var(--ns-muted-fg)" }} />}
-              Toggle Theme
-            </button>
-          </div>
-        </div>
-      </div>
-    </>
+function Kbd({ children }: { children: React.ReactNode }) {
+  return (
+    <span
+      style={{
+        marginLeft: "auto",
+        fontSize: 11,
+        color: "var(--ns-muted-fg)",
+        flexShrink: 0,
+      }}
+    >
+      {children}
+    </span>
   );
 }
