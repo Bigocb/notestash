@@ -1,12 +1,12 @@
-import { StateCreator } from "zustand";
 import { EditorMode } from "@/types/editor";
+import type { ImmerSet } from "./types";
 
 export interface SettingsSlice {
   fontFamily: string;
   fontSize: number;
   lineHeight: number;
   spellcheck: boolean;
-  autosaveDelay: number;       // ms; 0 = disabled
+  autosaveDelay: number;
   defaultEditorMode: EditorMode;
   vimMode: boolean;
   activeThemeId: string;
@@ -14,8 +14,7 @@ export interface SettingsSlice {
   updateSettings: (partial: Partial<Omit<SettingsSlice, "updateSettings">>) => void;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const createSettingsSlice: StateCreator<SettingsSlice, any, [], SettingsSlice> = (set) => ({
+export const createSettingsSlice = (set: ImmerSet): SettingsSlice => ({
   fontFamily: "monospace",
   fontSize: 14,
   lineHeight: 1.6,
@@ -26,7 +25,5 @@ export const createSettingsSlice: StateCreator<SettingsSlice, any, [], SettingsS
   activeThemeId: "tokyo-night",
 
   updateSettings: (partial) =>
-    set((state) => {
-      Object.assign(state, partial);
-    }),
+    set((state) => { Object.assign(state, partial); }),
 });

@@ -1,26 +1,23 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
-import { VaultSlice, createVaultSlice } from "./vaultSlice";
-import { EditorSlice, createEditorSlice } from "./editorSlice";
-import { UISlice, createUISlice } from "./uiSlice";
-import { SettingsSlice, createSettingsSlice } from "./settingsSlice";
+import { createVaultSlice, VaultSlice } from "./vaultSlice";
+import { createEditorSlice, EditorSlice } from "./editorSlice";
+import { createUISlice, UISlice } from "./uiSlice";
+import { createSettingsSlice, SettingsSlice } from "./settingsSlice";
+import type { BoundStore } from "./types";
 
-export type BoundStore = VaultSlice & EditorSlice & UISlice & SettingsSlice;
+export type { BoundStore };
+export type { VaultSlice, EditorSlice, UISlice, SettingsSlice };
 
 export const useStore = create<BoundStore>()(
-  immer((set, get, store) => ({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ...createVaultSlice(set as any, get as any, store as any),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ...createEditorSlice(set as any, get as any, store as any),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ...createUISlice(set as any, get as any, store as any),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ...createSettingsSlice(set as any, get as any, store as any),
+  immer((set, get) => ({
+    ...createVaultSlice(set, get),
+    ...createEditorSlice(set, get),
+    ...createUISlice(set),
+    ...createSettingsSlice(set),
   }))
 );
 
-// Convenience selectors
 export const useVault = () =>
   useStore((s) => ({
     vaultPath: s.vaultPath,
@@ -49,6 +46,7 @@ export const useEditor = () =>
     updateTabContent: s.updateTabContent,
     saveTab: s.saveTab,
     saveAllTabs: s.saveAllTabs,
+    renameTab: s.renameTab,
     setTabMode: s.setTabMode,
     updateTabCursor: s.updateTabCursor,
     toggleSplit: s.toggleSplit,

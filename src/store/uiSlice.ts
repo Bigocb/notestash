@@ -1,4 +1,4 @@
-import { StateCreator } from "zustand";
+import type { ImmerSet } from "./types";
 
 export type SidebarPanel = "files" | "search" | "tags";
 export type Theme = "dark" | "light";
@@ -18,8 +18,7 @@ export interface UISlice {
   toggleTheme: () => void;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const createUISlice: StateCreator<UISlice, any, [], UISlice> = (set) => ({
+export const createUISlice = (set: ImmerSet): UISlice => ({
   activePanel: "files",
   isSidebarOpen: true,
   sidebarWidth: 280,
@@ -33,27 +32,17 @@ export const createUISlice: StateCreator<UISlice, any, [], UISlice> = (set) => (
     }),
 
   toggleSidebar: () =>
-    set((state) => {
-      state.isSidebarOpen = !state.isSidebarOpen;
-    }),
+    set((state) => { state.isSidebarOpen = !state.isSidebarOpen; }),
 
   setSidebarWidth: (width) =>
-    set((state) => {
-      state.sidebarWidth = Math.max(180, Math.min(600, width));
-    }),
+    set((state) => { state.sidebarWidth = Math.max(180, Math.min(600, width)); }),
 
   setCommandPaletteOpen: (open) =>
-    set((state) => {
-      state.isCommandPaletteOpen = open;
-    }),
+    set((state) => { state.isCommandPaletteOpen = open; }),
 
   setTheme: (theme) =>
-    set((state) => {
-      state.theme = theme;
-    }),
+    set((state) => { state.theme = theme; }),
 
   toggleTheme: () =>
-    set((state) => {
-      state.theme = state.theme === "dark" ? "light" : "dark";
-    }),
+    set((state) => { state.theme = state.theme === "dark" ? "light" : "dark"; }),
 });

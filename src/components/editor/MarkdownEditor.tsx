@@ -70,7 +70,6 @@ export default function MarkdownEditor({ tab }: Props) {
 
   return (
     <CodeMirror
-      ref={editorRef}
       value={tab.content}
       onChange={handleChange}
       extensions={[...baseExtensions, editorTheme]}

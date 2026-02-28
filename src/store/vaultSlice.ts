@@ -1,8 +1,8 @@
-import { StateCreator } from "zustand";
 import { FileTreeNode, NoteFileMeta, VaultFileEvent } from "@/types/note";
 import { DocumentType, documentTypeFromExtension } from "@/types/document";
 import { parseNote } from "@/lib/parser";
 import * as fs from "@/lib/fs";
+import type { ImmerSet, ImmerGet } from "./types";
 
 export interface VaultSlice {
   vaultPath: string | null;
@@ -22,8 +22,7 @@ export interface VaultSlice {
   addRecentVault: (path: string) => void;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const createVaultSlice: StateCreator<VaultSlice, any, [], VaultSlice> = (set, get) => ({
+export const createVaultSlice = (set: ImmerSet, get: ImmerGet): VaultSlice => ({
   vaultPath: null,
   vaultName: null,
   fileTree: null,
@@ -44,9 +43,9 @@ export const createVaultSlice: StateCreator<VaultSlice, any, [], VaultSlice> = (
         fs.listVaultFiles(path),
       ]);
 
-      // Enrich flat file list with parsed metadata (tags, wikilinks, title)
       const enriched: NoteFileMeta[] = rawFiles.map((f) => ({
-        filePath: (f as any).file_path ?? f.filePath,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        filePath: (f as any).filePath ?? (f as any).file_path,
         name: f.name,
         title: f.name,
         tags: [],
@@ -66,13 +65,10 @@ export const createVaultSlice: StateCreator<VaultSlice, any, [], VaultSlice> = (
         state.fileTree = tree;
         state.flatFiles = enriched;
         state.isLoading = false;
-        // Auto-expand the vault root
         state.expandedDirs = new Set([path]);
       });
 
       get().addRecentVault(path);
-
-      // Kick off background content parsing for metadata enrichment
       enrichNoteMetadata(enriched, set);
     } catch (err) {
       set((state) => {
@@ -101,7 +97,8 @@ export const createVaultSlice: StateCreator<VaultSlice, any, [], VaultSlice> = (
         fs.listVaultFiles(vaultPath),
       ]);
       const enriched: NoteFileMeta[] = rawFiles.map((f) => ({
-        filePath: (f as any).file_path ?? f.filePath,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        filePath: (f as any).filePath ?? (f as any).file_path,
         name: f.name,
         title: f.name,
         tags: [],
@@ -122,7 +119,6 @@ export const createVaultSlice: StateCreator<VaultSlice, any, [], VaultSlice> = (
   },
 
   handleFileEvent: (_event: VaultFileEvent) => {
-    // Trigger a lightweight refresh on file system events
     get().refreshFileTree();
   },
 
@@ -144,16 +140,8 @@ export const createVaultSlice: StateCreator<VaultSlice, any, [], VaultSlice> = (
   },
 });
 
-/**
- * Reads and parses a sample of notes in the background to extract
- * accurate title, tag, and wiki-link metadata without blocking the UI.
- */
-async function enrichNoteMetadata(
-  files: NoteFileMeta[],
-  set: (fn: (state: VaultSlice) => void) => void
-) {
+async function enrichNoteMetadata(files: NoteFileMeta[], set: ImmerSet) {
   const mdFiles = files.filter((f) => f.type === DocumentType.Markdown);
-  // Process in batches to avoid hammering the file system
   const BATCH = 20;
   for (let i = 0; i < mdFiles.length; i += BATCH) {
     const batch = mdFiles.slice(i, i + BATCH);
@@ -171,11 +159,10 @@ async function enrichNoteMetadata(
             }
           });
         } catch {
-          // Non-critical — skip silently
+          // Non-critical
         }
       })
     );
-    // Yield to the event loop between batches
     await new Promise((r) => setTimeout(r, 0));
   }
 }

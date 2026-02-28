@@ -1,7 +1,7 @@
-import { StateCreator } from "zustand";
 import { v4 as uuidv4 } from "uuid";
 import { EditorTab, EditorMode, SplitLayout } from "@/types/editor";
 import * as fs from "@/lib/fs";
+import type { ImmerSet, ImmerGet } from "./types";
 
 export interface EditorSlice {
   tabs: EditorTab[];
@@ -21,8 +21,7 @@ export interface EditorSlice {
   setSplitSecondaryTab: (tabId: string) => void;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const createEditorSlice: StateCreator<EditorSlice, any, [], EditorSlice> = (set, get) => ({
+export const createEditorSlice = (set: ImmerSet, get: ImmerGet): EditorSlice => ({
   tabs: [],
   activeTabId: null,
   split: {
@@ -33,15 +32,9 @@ export const createEditorSlice: StateCreator<EditorSlice, any, [], EditorSlice> 
   },
 
   openTab: async (filePath: string, title: string) => {
-    // If tab already open, just focus it
     const existing = get().tabs.find((t) => t.filePath === filePath);
     if (existing) {
-      set((state) => {
-        state.activeTabId = existing.id;
-        if (state.split.isActive && !state.split.primaryTabId) {
-          state.split.primaryTabId = existing.id;
-        }
-      });
+      set((state) => { state.activeTabId = existing.id; });
       return;
     }
 
@@ -67,9 +60,6 @@ export const createEditorSlice: StateCreator<EditorSlice, any, [], EditorSlice> 
     set((state) => {
       state.tabs.push(tab);
       state.activeTabId = tab.id;
-      if (state.split.isActive && !state.split.primaryTabId) {
-        state.split.primaryTabId = tab.id;
-      }
     });
   },
 
@@ -78,13 +68,10 @@ export const createEditorSlice: StateCreator<EditorSlice, any, [], EditorSlice> 
       const idx = state.tabs.findIndex((t) => t.id === tabId);
       if (idx === -1) return;
       state.tabs.splice(idx, 1);
-
-      // Update active tab
       if (state.activeTabId === tabId) {
         state.activeTabId =
           state.tabs[Math.min(idx, state.tabs.length - 1)]?.id ?? null;
       }
-      // Clean up split references
       if (state.split.primaryTabId === tabId) {
         state.split.primaryTabId = state.activeTabId;
       }
@@ -95,9 +82,7 @@ export const createEditorSlice: StateCreator<EditorSlice, any, [], EditorSlice> 
   },
 
   setActiveTab: (tabId: string) => {
-    set((state) => {
-      state.activeTabId = tabId;
-    });
+    set((state) => { state.activeTabId = tabId; });
   },
 
   updateTabContent: (tabId: string, content: string) => {
@@ -158,7 +143,6 @@ export const createEditorSlice: StateCreator<EditorSlice, any, [], EditorSlice> 
       state.split.isActive = !state.split.isActive;
       if (state.split.isActive) {
         state.split.primaryTabId = state.activeTabId;
-        // Default: open the same tab in second pane
         state.split.secondaryTabId = state.activeTabId;
       } else {
         state.split.primaryTabId = null;
@@ -168,8 +152,6 @@ export const createEditorSlice: StateCreator<EditorSlice, any, [], EditorSlice> 
   },
 
   setSplitSecondaryTab: (tabId: string) => {
-    set((state) => {
-      state.split.secondaryTabId = tabId;
-    });
+    set((state) => { state.split.secondaryTabId = tabId; });
   },
 });
