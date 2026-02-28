@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+/* ── CSS custom properties (set by applyTheme()) ─────────────── */
+:root {
+  --ns-bg: #1a1b2e;
+  --ns-fg: #c0caf5;
+  --ns-sidebar-bg: #16161e;
+  --ns-sidebar-fg: #a9b1d6;
+  --ns-editor-bg: #1a1b2e;
+  --ns-editor-fg: #c0caf5;
+  --ns-accent: #7aa2f7;
+  --ns-accent-fg: #1a1b2e;
+  --ns-border: #292e42;
+  --ns-muted: #292e42;
+  --ns-muted-fg: #565f89;
+  --ns-tab-active: #1a1b2e;
+  --ns-tab-hover: #1e2030;
+  --ns-selection: #2d3f76;
+  --ns-line-highlight: #1e2030;
+
+  --ns-syn-keyword: #bb9af7;
+  --ns-syn-string: #9ece6a;
+  --ns-syn-comment: #565f89;
+  --ns-syn-heading: #7aa2f7;
+  --ns-syn-link: #73daca;
+  --ns-syn-code: #b4f9f8;
+  --ns-syn-bold: #c0caf5;
+  --ns-syn-italic: #e0af68;
+  --ns-syn-tag: #f7768e;
+  --ns-syn-wiki-link: #7dcfff;
+
+  /* Typography */
+  --ns-font-ui: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --ns-font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
+  --ns-font-size: 14px;
+  --ns-line-height: 1.6;
+
+  /* Layout */
+  --ns-sidebar-width: 280px;
+  --ns-activity-bar-width: 48px;
+  --ns-statusbar-height: 24px;
+  --ns-tabbar-height: 36px;
+}
+
+/* ── Base reset ───────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  font-family: var(--ns-font-ui);
+  font-size: var(--ns-font-size);
+  background-color: var(--ns-bg);
+  color: var(--ns-fg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Prevent text selection on UI chrome */
+.no-select {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--ns-muted-fg);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ns-fg);
+}
+
+/* Focus ring */
+:focus-visible {
+  outline: 2px solid var(--ns-accent);
+  outline-offset: 2px;
+}
