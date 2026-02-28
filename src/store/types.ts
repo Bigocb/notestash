@@ -9,8 +9,9 @@ import type { VaultSlice } from "./vaultSlice";
 import type { EditorSlice } from "./editorSlice";
 import type { UISlice } from "./uiSlice";
 import type { SettingsSlice } from "./settingsSlice";
+import type { SearchSlice } from "./searchSlice";
 
-export type BoundStore = VaultSlice & EditorSlice & UISlice & SettingsSlice;
+export type BoundStore = VaultSlice & EditorSlice & UISlice & SettingsSlice & SearchSlice;
 
 /** The immer-enhanced `set` function — accepts a mutating draft callback */
 export type ImmerSet = (fn: (state: BoundStore) => void) => void;

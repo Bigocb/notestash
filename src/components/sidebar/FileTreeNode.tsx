@@ -2,6 +2,7 @@ import { ChevronRight, ChevronDown, FileText, Folder, FolderOpen } from "lucide-
 import { useVault, useEditor } from "@/store";
 import { FileTreeNode } from "@/types/note";
 import { cn } from "@/lib/utils";
+import FileTreeContextMenu from "./FileTreeContextMenu";
 
 interface Props {
   node: FileTreeNode;
@@ -28,6 +29,7 @@ export default function FileTreeNodeItem({ node, depth }: Props) {
 
   return (
     <div>
+      <FileTreeContextMenu node={node}>
       <div
         className={cn(
           "relative flex items-center gap-1.5 py-[3px] pr-3 cursor-pointer transition-colors",
@@ -69,6 +71,7 @@ export default function FileTreeNodeItem({ node, depth }: Props) {
           {node.name}
         </span>
       </div>
+      </FileTreeContextMenu>
 
       {/* Children with indent guide */}
       {node.isDirectory && isExpanded && node.children && (

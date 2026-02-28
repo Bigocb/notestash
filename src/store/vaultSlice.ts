@@ -1,6 +1,7 @@
 import { FileTreeNode, NoteFileMeta, VaultFileEvent } from "@/types/note";
 import { DocumentType, documentTypeFromExtension } from "@/types/document";
 import { parseNote } from "@/lib/parser";
+import { addToSearchIndex, clearSearchIndex } from "@/lib/search";
 import * as fs from "@/lib/fs";
 import type { ImmerSet, ImmerGet } from "./types";
 
@@ -79,6 +80,7 @@ export const createVaultSlice = (set: ImmerSet, get: ImmerGet): VaultSlice => ({
   },
 
   closeVault: () => {
+    clearSearchIndex();
     set((state) => {
       state.vaultPath = null;
       state.vaultName = null;
@@ -150,6 +152,7 @@ async function enrichNoteMetadata(files: NoteFileMeta[], set: ImmerSet) {
         try {
           const content = await fs.readNote(file.filePath);
           const parsed = parseNote(content, file.name);
+          addToSearchIndex(file.filePath, parsed.title, parsed.body, parsed.tags);
           set((state) => {
             const idx = state.flatFiles.findIndex((f) => f.filePath === file.filePath);
             if (idx !== -1) {

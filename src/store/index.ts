@@ -4,10 +4,11 @@ import { createVaultSlice, VaultSlice } from "./vaultSlice";
 import { createEditorSlice, EditorSlice } from "./editorSlice";
 import { createUISlice, UISlice } from "./uiSlice";
 import { createSettingsSlice, SettingsSlice } from "./settingsSlice";
+import { createSearchSlice, SearchSlice } from "./searchSlice";
 import type { BoundStore } from "./types";
 
 export type { BoundStore };
-export type { VaultSlice, EditorSlice, UISlice, SettingsSlice };
+export type { VaultSlice, EditorSlice, UISlice, SettingsSlice, SearchSlice };
 
 export const useStore = create<BoundStore>()(
   immer((set, get) => ({
@@ -15,6 +16,7 @@ export const useStore = create<BoundStore>()(
     ...createEditorSlice(set, get),
     ...createUISlice(set),
     ...createSettingsSlice(set),
+    ...createSearchSlice(set),
   }))
 );
 
@@ -79,4 +81,18 @@ export const useSettings = () =>
     vimMode: s.vimMode,
     activeThemeId: s.activeThemeId,
     updateSettings: s.updateSettings,
+  }));
+
+export const useSearch = () =>
+  useStore((s) => ({
+    searchQuery: s.searchQuery,
+    searchResults: s.searchResults,
+    activeTags: s.activeTags,
+    isSearching: s.isSearching,
+    setSearchQuery: s.setSearchQuery,
+    runSearch: s.runSearch,
+    toggleTag: s.toggleTag,
+    clearTags: s.clearTags,
+    clearSearch: s.clearSearch,
+    resetSearchIndex: s.resetSearchIndex,
   }));
