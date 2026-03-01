@@ -27,14 +27,16 @@ fn build_tree(dir: &Path, vault_root: &Path) -> Option<Vec<FileTreeNode>> {
 
     let entries = match std::fs::read_dir(dir) {
         Ok(e) => e,
-        Err(_) => return None,
+        Err(e) => {
+            log::warn!("build_tree: cannot read {:?}: {}", dir, e);
+            return None;
+        }
     };
 
     let mut sorted_entries: Vec<_> = entries.filter_map(|e| e.ok()).collect();
     sorted_entries.sort_by(|a, b| {
         let a_is_dir = a.path().is_dir();
         let b_is_dir = b.path().is_dir();
-        // Directories first, then alphabetical
         match (a_is_dir, b_is_dir) {
             (true, false) => std::cmp::Ordering::Less,
             (false, true) => std::cmp::Ordering::Greater,
@@ -46,7 +48,6 @@ fn build_tree(dir: &Path, vault_root: &Path) -> Option<Vec<FileTreeNode>> {
         let path = entry.path();
         let name = entry.file_name().to_string_lossy().to_string();
 
-        // Skip hidden files/dirs (starting with .)
         if name.starts_with('.') {
             continue;
         }
@@ -56,8 +57,7 @@ fn build_tree(dir: &Path, vault_root: &Path) -> Option<Vec<FileTreeNode>> {
         let extension = if is_dir {
             None
         } else {
-            path.extension()
-                .map(|e| e.to_string_lossy().to_string())
+            path.extension().map(|e| e.to_string_lossy().to_string())
         };
 
         let node_children = if is_dir {
@@ -80,12 +80,17 @@ fn build_tree(dir: &Path, vault_root: &Path) -> Option<Vec<FileTreeNode>> {
 
 #[tauri::command]
 pub async fn get_file_tree(vault_path: String) -> Result<FileTreeNode, String> {
+    log::info!("get_file_tree: {}", vault_path);
     let path = Path::new(&vault_path);
     if !path.exists() {
-        return Err(format!("Vault path does not exist: {}", vault_path));
+        let msg = format!("Vault path does not exist: {}", vault_path);
+        log::error!("{}", msg);
+        return Err(msg);
     }
     if !path.is_dir() {
-        return Err(format!("Vault path is not a directory: {}", vault_path));
+        let msg = format!("Vault path is not a directory: {}", vault_path);
+        log::error!("{}", msg);
+        return Err(msg);
     }
 
     let name = path
@@ -106,9 +111,12 @@ pub async fn get_file_tree(vault_path: String) -> Result<FileTreeNode, String> {
 
 #[tauri::command]
 pub async fn list_vault_files(vault_path: String) -> Result<Vec<NoteFileMeta>, String> {
+    log::info!("list_vault_files: {}", vault_path);
     let path = Path::new(&vault_path);
     if !path.exists() {
-        return Err(format!("Vault path does not exist: {}", vault_path));
+        let msg = format!("Vault path does not exist: {}", vault_path);
+        log::error!("{}", msg);
+        return Err(msg);
     }
 
     let mut files: Vec<NoteFileMeta> = Vec::new();
@@ -121,7 +129,6 @@ pub async fn list_vault_files(vault_path: String) -> Result<Vec<NoteFileMeta>, S
     {
         let entry_path = entry.path();
 
-        // Skip hidden files
         if entry_path
             .components()
             .any(|c| c.as_os_str().to_string_lossy().starts_with('.'))
@@ -134,7 +141,6 @@ pub async fn list_vault_files(vault_path: String) -> Result<Vec<NoteFileMeta>, S
             .map(|e| e.to_string_lossy().to_string())
             .unwrap_or_default();
 
-        // For now index all files (IDE-ready), but mark non-md separately
         let metadata = entry.metadata().map_err(|e| e.to_string())?;
         let modified = metadata
             .modified()
@@ -157,5 +163,6 @@ pub async fn list_vault_files(vault_path: String) -> Result<Vec<NoteFileMeta>, S
         });
     }
 
+    log::info!("list_vault_files: found {} files in {}", files.len(), path.display());
     Ok(files)
 }
