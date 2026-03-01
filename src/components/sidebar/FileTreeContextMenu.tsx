@@ -36,7 +36,7 @@ export default function FileTreeContextMenu({ node, children }: Props) {
       await fsLib.renameNote(node.path, newPath);
       // Update any open tab
       const tab = tabs.find((t) => t.filePath === node.path);
-      if (tab) renameTab(tab.id, newName.replace(/\.[^.]+$/, ""), newPath);
+      if (tab) renameTab(tab.id, newPath, newName.replace(/\.[^.]+$/, ""));
       await refreshFileTree();
     } catch (err) {
       console.error("Rename failed:", err);

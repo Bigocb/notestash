@@ -1,11 +1,11 @@
 {
   "name": "notestash",
   "private": true,
-  "version": "0.1.10",
+  "version": "0.1.11",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "node scripts/bump-version.mjs && tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri"
   },
