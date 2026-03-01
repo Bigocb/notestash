@@ -8,7 +8,7 @@ export interface EditorSlice {
   activeTabId: string | null;
   split: SplitLayout;
 
-  openTab: (filePath: string, title: string) => Promise<void>;
+  openTab: (filePath: string, title: string) => void;
   closeTab: (tabId: string) => void;
   setActiveTab: (tabId: string) => void;
   updateTabContent: (tabId: string, content: string) => void;
@@ -32,26 +32,21 @@ export const createEditorSlice = (set: ImmerSet, get: ImmerGet): EditorSlice => 
     splitRatio: 0.5,
   },
 
-  openTab: async (filePath: string, title: string) => {
+  openTab: (filePath: string, title: string) => {
     const existing = get().tabs.find((t) => t.filePath === filePath);
     if (existing) {
       set((state) => { state.activeTabId = existing.id; });
       return;
     }
 
-    let content = "";
-    try {
-      content = await fs.readNote(filePath);
-    } catch (err) {
-      console.error("Failed to read note:", err);
-    }
-
+    // Add the tab synchronously so the UI renders immediately
+    const tabId = uuidv4();
     const tab: EditorTab = {
-      id: uuidv4(),
+      id: tabId,
       filePath,
       title,
-      content,
-      savedContent: content,
+      content: "",
+      savedContent: "",
       isDirty: false,
       mode: "live-preview",
       cursorPos: { line: 0, ch: 0 },
@@ -61,6 +56,19 @@ export const createEditorSlice = (set: ImmerSet, get: ImmerGet): EditorSlice => 
     set((state) => {
       state.tabs.push(tab);
       state.activeTabId = tab.id;
+    });
+
+    // Load content asynchronously and patch the tab once ready
+    fs.readNote(filePath).then((content) => {
+      set((state) => {
+        const t = state.tabs.find((t) => t.id === tabId);
+        if (t) {
+          t.content = content;
+          t.savedContent = content;
+        }
+      });
+    }).catch((err) => {
+      console.error("Failed to read note:", err);
     });
   },
 
