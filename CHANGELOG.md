@@ -7,6 +7,8 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.1.2] – 2026-03-01
+
 ### Fixed
 - Add `tauri-plugin-log` so the app writes log files on every run — previously, startup crashes left no diagnostic output anywhere.
 
@@ -29,6 +31,7 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 - Draggable split pane and file-watcher search synchronisation.
 - GitHub Actions workflows for CI (check on every PR/push to `main`) and cross-platform release builds triggered by version tags.
 
-[Unreleased]: https://github.com/Bigocb/notestash/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/Bigocb/notestash/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/Bigocb/notestash/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Bigocb/notestash/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Bigocb/notestash/releases/tag/v0.1.0
