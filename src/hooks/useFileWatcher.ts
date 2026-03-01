@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
-import { useVault } from "@/store";
+import { useStore, useVault } from "@/store";
 import { VaultFileEventKind } from "@/types/note";
 import * as fsLib from "@/lib/fs";
 
@@ -9,7 +9,8 @@ import * as fsLib from "@/lib/fs";
  * and forwards them to the vaultSlice for reactive file tree updates.
  */
 export function useFileWatcher() {
-  const { vaultPath, handleFileEvent } = useVault();
+  const { vaultPath } = useVault();
+  const handleFileEvent = useStore((s) => s.handleFileEvent);
 
   useEffect(() => {
     if (!vaultPath) return;
